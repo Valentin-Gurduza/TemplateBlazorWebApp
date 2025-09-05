@@ -1,0 +1,6 @@
+services:
+  blazorwebapputm:
+    image: ${DOCKER_REGISTRY-}blazorwebapputm
+    build:
+      context: .
+      dockerfile: BlazorWebAppUTM/BlazorWebAppUTM/Dockerfile

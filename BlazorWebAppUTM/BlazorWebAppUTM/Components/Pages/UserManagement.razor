@@ -1,0 +1,186 @@
+@page "/user-management"
+@using BlazorWebAppUTM.CQRS.Users.Commands
+@using BlazorWebAppUTM.CQRS.Users.Queries
+@using BlazorWebAppUTM.Services
+@inject IUserService UserService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>User Management</PageTitle>
+
+<h3>User Management - CQRS Demo</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Create User (Command)</h4>
+        <EditForm Model="createUserModel" OnValidSubmit="CreateUser">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Email:</label>
+                <InputText @bind-Value="createUserModel.Email" class="form-control" placeholder="user@example.com" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Password:</label>
+                <InputText @bind-Value="createUserModel.Password" type="password" class="form-control" placeholder="Minimum 4 characters" />
+                <div class="form-text">Password requirements: Minimum 4 characters (relaxed for demo)</div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">First Name:</label>
+                <InputText @bind-Value="createUserModel.FirstName" class="form-control" placeholder="John" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Last Name:</label>
+                <InputText @bind-Value="createUserModel.LastName" class="form-control" placeholder="Doe" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" disabled="@isCreating">
+                @if (isCreating)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Create User
+            </button>
+        </EditForm>
+    </div>
+
+    <div class="col-md-6">
+        <h4>Get User (Query)</h4>
+        <div class="mb-3">
+            <label class="form-label">User ID:</label>
+            <InputText @bind-Value="userId" class="form-control" placeholder="Enter user ID" />
+        </div>
+        <button @onclick="GetUser" class="btn btn-secondary" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            Get User
+        </button>
+
+        @if (currentUser != null)
+        {
+            <div class="mt-3 card">
+                <div class="card-body">
+                    <h5 class="card-title">User Details</h5>
+                    <p><strong>ID:</strong> @currentUser.Id</p>
+                    <p><strong>Email:</strong> @currentUser.Email</p>
+                    <p><strong>Name:</strong> @currentUser.FirstName @currentUser.LastName</p>
+                    <p><strong>Created:</strong> @currentUser.CreatedAt.ToString("yyyy-MM-dd HH:mm")</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+        @message
+    </div>
+}
+
+<div class="mt-4">
+    <h5>CQRS Pattern Information</h5>
+    <div class="alert alert-info">
+        <p><strong>Commands:</strong> Handle write operations (Create, Update, Delete)</p>
+        <p><strong>Queries:</strong> Handle read operations (Select, Get)</p>
+        <p><strong>Benefits:</strong> Separation of concerns, scalability, maintainability</p>
+        <p><strong>Implementation:</strong> Using MediatR for message routing and handlers for business logic</p>
+    </div>
+</div>
+
+@code {
+    private CreateUserModel createUserModel = new();
+    private string userId = string.Empty;
+    private UserDto? currentUser;
+    private bool isCreating;
+    private bool isLoading;
+    private string message = string.Empty;
+    private bool isError;
+
+    private async Task CreateUser()
+    {
+        isCreating = true;
+        message = string.Empty;
+
+        try
+        {
+            var command = new CreateUserCommand(
+                createUserModel.Email,
+                createUserModel.Password,
+                createUserModel.FirstName,
+                createUserModel.LastName
+            );
+
+            var result = await UserService.CreateUserAsync(command);
+
+            if (result.Success)
+            {
+                message = $"User created successfully with ID: {result.UserId}";
+                isError = false;
+                createUserModel = new();
+            }
+            else
+            {
+                message = result.ErrorMessage ?? "Failed to create user";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isCreating = false;
+        }
+    }
+
+    private async Task GetUser()
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return;
+
+        isLoading = true;
+        message = string.Empty;
+
+        try
+        {
+            currentUser = await UserService.GetUserByIdAsync(userId);
+            
+            if (currentUser == null)
+            {
+                message = "User not found";
+                isError = true;
+            }
+            else
+            {
+                message = "User retrieved successfully";
+                isError = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class CreateUserModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+    }
+}
