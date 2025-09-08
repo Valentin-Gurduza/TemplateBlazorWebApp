@@ -55,23 +55,22 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
-// Ensure only the required tables for users are created (no roles/claims/logins)
+// Apply EF Core migrations at startup (recommended over EnsureCreated)
 try
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    
-    logger.LogInformation("Ensuring database is created with minimal Identity schema (AspNetUsers only)...");
-    await context.Database.EnsureCreatedAsync();
-    logger.LogInformation("Database ensured/created successfully.");
+
+    logger.LogInformation("Applying EF Core migrations...");
+    await context.Database.MigrateAsync();
+    logger.LogInformation("Database is up-to-date.");
 }
 catch (Exception ex)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Failed to ensure database creation. The application will start but database operations may fail.");
-    logger.LogError("Please check your SQL Server Express installation and connection string.");
-    logger.LogError("Connection string: {ConnectionString}", connectionString);
+    logger.LogError(ex, "Failed to migrate database. The application will start but database operations may fail.");
+    logger.LogError("Please run 'Add-Migration' and 'Update-Database' commands in Package Manager Console.");
 }
 
 // Configure the HTTP request pipeline.

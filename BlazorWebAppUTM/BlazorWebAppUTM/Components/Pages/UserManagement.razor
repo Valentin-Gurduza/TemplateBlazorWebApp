@@ -8,74 +8,268 @@
 
 <PageTitle>User Management</PageTitle>
 
-<h3>User Management - CQRS Demo</h3>
+<h3>User Management</h3>
 
-<div class="row">
-    <div class="col-md-6">
-        <h4>Create User (Command)</h4>
-        <EditForm Model="createUserModel" OnValidSubmit="CreateUser">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "create" ? "active" : "")" @onclick="@(() => SetActiveTab("create"))" type="button">
+            Create User
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "list" ? "active" : "")" @onclick="@(() => SetActiveTab("list"))" type="button">
+            List Users
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "get" ? "active" : "")" @onclick="@(() => SetActiveTab("get"))" type="button">
+            Get User
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "update" ? "active" : "")" @onclick="@(() => SetActiveTab("update"))" type="button">
+            Update User
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "delete" ? "active" : "")" @onclick="@(() => SetActiveTab("delete"))" type="button">
+            Delete User
+        </button>
+    </li>
+</ul>
 
-            <div class="mb-3">
-                <label class="form-label">Email:</label>
-                <InputText @bind-Value="createUserModel.Email" class="form-control" placeholder="user@example.com" />
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Password:</label>
-                <InputText @bind-Value="createUserModel.Password" type="password" class="form-control" placeholder="Minimum 4 characters" />
-                <div class="form-text">Password requirements: Minimum 4 characters (relaxed for demo)</div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">First Name:</label>
-                <InputText @bind-Value="createUserModel.FirstName" class="form-control" placeholder="John" />
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Last Name:</label>
-                <InputText @bind-Value="createUserModel.LastName" class="form-control" placeholder="Doe" />
-            </div>
+<!-- Create User Tab -->
+@if (activeTab == "create")
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Create User</h4>
+            <EditForm Model="createUserModel" OnValidSubmit="CreateUser">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
 
-            <button type="submit" class="btn btn-primary" disabled="@isCreating">
-                @if (isCreating)
+                <div class="mb-3">
+                    <label class="form-label">Email:</label>
+                    <InputText @bind-Value="createUserModel.Email" class="form-control" placeholder="user@example.com" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Password:</label>
+                    <InputText @bind-Value="createUserModel.Password" type="password" class="form-control" placeholder="Minimum 4 characters" />
+                    <div class="form-text">Password must be at least 4 characters long</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">First Name:</label>
+                    <InputText @bind-Value="createUserModel.FirstName" class="form-control" placeholder="John" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Last Name:</label>
+                    <InputText @bind-Value="createUserModel.LastName" class="form-control" placeholder="Doe" />
+                </div>
+
+                <button type="submit" class="btn btn-primary" disabled="@isCreating">
+                    @if (isCreating)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Create User
+                </button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- List Users Tab -->
+@if (activeTab == "list")
+{
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>All Users</h4>
+            <button @onclick="LoadUsers" class="btn btn-secondary" disabled="@isLoadingUsers">
+                @if (isLoadingUsers)
                 {
                     <span class="spinner-border spinner-border-sm me-2"></span>
                 }
-                Create User
+                Refresh Users
             </button>
-        </EditForm>
-    </div>
-
-    <div class="col-md-6">
-        <h4>Get User (Query)</h4>
-        <div class="mb-3">
-            <label class="form-label">User ID:</label>
-            <InputText @bind-Value="userId" class="form-control" placeholder="Enter user ID" />
         </div>
-        <button @onclick="GetUser" class="btn btn-secondary" disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span class="spinner-border spinner-border-sm me-2"></span>
-            }
-            Get User
-        </button>
 
-        @if (currentUser != null)
+        @if (usersResult != null && usersResult.Users.Any())
         {
-            <div class="mt-3 card">
-                <div class="card-body">
-                    <h5 class="card-title">User Details</h5>
-                    <p><strong>ID:</strong> @currentUser.Id</p>
-                    <p><strong>Email:</strong> @currentUser.Email</p>
-                    <p><strong>Name:</strong> @currentUser.FirstName @currentUser.LastName</p>
-                    <p><strong>Created:</strong> @currentUser.CreatedAt.ToString("yyyy-MM-dd HH:mm")</p>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in usersResult.Users)
+                        {
+                            <tr>
+                                <td><small>@user.Id.Substring(0, 8)...</small></td>
+                                <td>@user.Email</td>
+                                <td>@user.FirstName</td>
+                                <td>@user.LastName</td>
+                                <td>@user.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    <button @onclick="@(() => SelectUserForUpdate(user))" class="btn btn-sm btn-warning me-1">Edit</button>
+                                    <button @onclick="@(() => ConfirmDelete(user.Id))" class="btn btn-sm btn-danger">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <span>Showing @usersResult.Users.Count() of @usersResult.TotalCount users</span>
+                <div>
+                    <button @onclick="PreviousPage" class="btn btn-sm btn-outline-primary me-1" disabled="@(currentPage <= 1)">Previous</button>
+                    <span class="mx-2">Page @currentPage</span>
+                    <button @onclick="NextPage" class="btn btn-sm btn-outline-primary" disabled="@(currentPage * pageSize >= usersResult.TotalCount)">Next</button>
                 </div>
             </div>
         }
+        else if (!isLoadingUsers)
+        {
+            <div class="alert alert-info">No users found. <button @onclick="LoadUsers" class="btn btn-link p-0">Click to load users</button></div>
+        }
     </div>
-</div>
+}
+
+<!-- Get User Tab -->
+@if (activeTab == "get")
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Get User by ID</h4>
+            <div class="mb-3">
+                <label class="form-label">User ID:</label>
+                <InputText @bind-Value="userId" class="form-control" placeholder="Enter user ID" />
+            </div>
+            <button @onclick="GetUser" class="btn btn-secondary" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Get User
+            </button>
+
+            @if (currentUser != null)
+            {
+                <div class="mt-3 card">
+                    <div class="card-body">
+                        <h5 class="card-title">User Details</h5>
+                        <p><strong>ID:</strong> @currentUser.Id</p>
+                        <p><strong>Email:</strong> @currentUser.Email</p>
+                        <p><strong>Name:</strong> @currentUser.FirstName @currentUser.LastName</p>
+                        <p><strong>Created:</strong> @currentUser.CreatedAt.ToString("yyyy-MM-dd HH:mm")</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Update User Tab -->
+@if (activeTab == "update")
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Update User</h4>
+            @if (updateUserModel.UserId == null)
+            {
+                <div class="alert alert-info">
+                    Select a user from the "List Users" tab to edit, or enter a User ID below.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">User ID:</label>
+                    <InputText @bind-Value="updateUserId" class="form-control" placeholder="Enter user ID" />
+                    <button @onclick="LoadUserForUpdate" class="btn btn-secondary mt-2" disabled="@isLoadingForUpdate">
+                        @if (isLoadingForUpdate)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Load User
+                    </button>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="updateUserModel" OnValidSubmit="UpdateUser">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">User ID:</label>
+                        <input type="text" class="form-control" value="@updateUserModel.UserId" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email:</label>
+                        <InputText @bind-Value="updateUserModel.Email" class="form-control" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">First Name:</label>
+                        <InputText @bind-Value="updateUserModel.FirstName" class="form-control" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Last Name:</label>
+                        <InputText @bind-Value="updateUserModel.LastName" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-warning me-2" disabled="@isUpdating">
+                            @if (isUpdating)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Update User
+                        </button>
+                        <button type="button" @onclick="ClearUpdateForm" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+}
+
+<!-- Delete User Tab -->
+@if (activeTab == "delete")
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Delete User</h4>
+            <div class="alert alert-warning">
+                <strong>Warning:</strong> This action cannot be undone.
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">User ID:</label>
+                <InputText @bind-Value="deleteUserId" class="form-control" placeholder="Enter user ID" />
+            </div>
+            
+            <button @onclick="@(() => ConfirmDelete())" class="btn btn-danger" disabled="@(string.IsNullOrWhiteSpace(deleteUserId) || isDeleting)">
+                @if (isDeleting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                Delete User
+            </button>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(message))
 {
@@ -84,24 +278,53 @@
     </div>
 }
 
-<div class="mt-4">
-    <h5>CQRS Pattern Information</h5>
-    <div class="alert alert-info">
-        <p><strong>Commands:</strong> Handle write operations (Create, Update, Delete)</p>
-        <p><strong>Queries:</strong> Handle read operations (Select, Get)</p>
-        <p><strong>Benefits:</strong> Separation of concerns, scalability, maintainability</p>
-        <p><strong>Implementation:</strong> Using MediatR for message routing and handlers for business logic</p>
-    </div>
-</div>
-
 @code {
+    private string activeTab = "create";
+    
+    // Create
     private CreateUserModel createUserModel = new();
+    private bool isCreating;
+    
+    // Read single
     private string userId = string.Empty;
     private UserDto? currentUser;
-    private bool isCreating;
     private bool isLoading;
+    
+    // Read list
+    private GetUsersResult? usersResult;
+    private bool isLoadingUsers;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    
+    // Update
+    private UpdateUserModel updateUserModel = new();
+    private string updateUserId = string.Empty;
+    private bool isUpdating;
+    private bool isLoadingForUpdate;
+    
+    // Delete
+    private string deleteUserId = string.Empty;
+    private bool isDeleting;
+    
+    // Common
     private string message = string.Empty;
     private bool isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        message = string.Empty;
+        
+        if (tab == "list" && usersResult == null)
+        {
+            _ = LoadUsers();
+        }
+    }
 
     private async Task CreateUser()
     {
@@ -124,6 +347,12 @@
                 message = $"User created successfully with ID: {result.UserId}";
                 isError = false;
                 createUserModel = new();
+                
+                // Refresh users list if it's loaded
+                if (usersResult != null)
+                {
+                    await LoadUsers();
+                }
             }
             else
             {
@@ -139,6 +368,26 @@
         finally
         {
             isCreating = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoadingUsers = true;
+        
+        try
+        {
+            var query = new GetUsersQuery(currentPage, pageSize);
+            usersResult = await UserService.GetUsersAsync(query);
+        }
+        catch (Exception ex)
+        {
+            message = $"Error loading users: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingUsers = false;
         }
     }
 
@@ -176,10 +425,199 @@
         }
     }
 
+    private async Task LoadUserForUpdate()
+    {
+        if (string.IsNullOrWhiteSpace(updateUserId))
+            return;
+
+        isLoadingForUpdate = true;
+        message = string.Empty;
+
+        try
+        {
+            var user = await UserService.GetUserByIdAsync(updateUserId);
+            
+            if (user != null)
+            {
+                updateUserModel = new UpdateUserModel
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName
+                };
+                message = "User loaded for editing";
+                isError = false;
+            }
+            else
+            {
+                message = "User not found";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingForUpdate = false;
+        }
+    }
+
+    private void SelectUserForUpdate(UserDto user)
+    {
+        updateUserModel = new UpdateUserModel
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+        activeTab = "update";
+        message = $"User {user.Email} loaded for editing";
+        isError = false;
+    }
+
+    private async Task UpdateUser()
+    {
+        isUpdating = true;
+        message = string.Empty;
+
+        try
+        {
+            var command = new UpdateUserCommand(
+                updateUserModel.UserId!,
+                updateUserModel.Email,
+                updateUserModel.FirstName,
+                updateUserModel.LastName
+            );
+
+            var result = await UserService.UpdateUserAsync(command);
+
+            if (result.Success)
+            {
+                message = "User updated successfully";
+                isError = false;
+                
+                // Refresh users list if it's loaded
+                if (usersResult != null)
+                {
+                    await LoadUsers();
+                }
+            }
+            else
+            {
+                message = result.ErrorMessage ?? "Failed to update user";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private void ClearUpdateForm()
+    {
+        updateUserModel = new();
+        updateUserId = string.Empty;
+        message = string.Empty;
+    }
+
+    private async Task ConfirmDelete(string? userIdToDelete = null)
+    {
+        var idToDelete = userIdToDelete ?? deleteUserId;
+        
+        if (string.IsNullOrWhiteSpace(idToDelete))
+            return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this user? This action cannot be undone.");
+        
+        if (confirmed)
+        {
+            await DeleteUser(idToDelete);
+        }
+    }
+
+    private async Task DeleteUser(string userIdToDelete)
+    {
+        isDeleting = true;
+        message = string.Empty;
+
+        try
+        {
+            var command = new DeleteUserCommand(userIdToDelete);
+            var result = await UserService.DeleteUserAsync(command);
+
+            if (result.Success)
+            {
+                message = "User deleted successfully";
+                isError = false;
+                deleteUserId = string.Empty;
+                
+                // Refresh users list if it's loaded
+                if (usersResult != null)
+                {
+                    await LoadUsers();
+                }
+                
+                // Clear update form if it was for the deleted user
+                if (updateUserModel.UserId == userIdToDelete)
+                {
+                    ClearUpdateForm();
+                }
+            }
+            else
+            {
+                message = result.ErrorMessage ?? "Failed to delete user";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Error: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            await LoadUsers();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        currentPage++;
+        await LoadUsers();
+    }
+
     public class CreateUserModel
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+    }
+    
+    public class UpdateUserModel
+    {
+        public string? UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
     }

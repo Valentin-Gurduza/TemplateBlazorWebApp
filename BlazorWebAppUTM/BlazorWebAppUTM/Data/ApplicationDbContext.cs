@@ -9,5 +9,13 @@ namespace BlazorWebAppUTM.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            // Rename AspNetUsers table to UserCreation
+            builder.Entity<ApplicationUser>().ToTable("UserCreation");
+        }
     }
 }

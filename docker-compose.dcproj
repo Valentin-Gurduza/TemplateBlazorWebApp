@@ -12,6 +12,7 @@
   <ItemGroup>
     <None Include="BlazorWebAppUTM\DATA_STORAGE_GUIDE.md" />
     <None Include="BlazorWebAppUTM\TESTING_GUIDE.md" />
+    <None Include="DATA_STORAGE_GUIDE.md" />
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>

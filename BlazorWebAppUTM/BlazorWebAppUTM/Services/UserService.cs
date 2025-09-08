@@ -8,6 +8,9 @@ public interface IUserService
 {
     Task<CreateUserResult> CreateUserAsync(CreateUserCommand command);
     Task<UserDto?> GetUserByIdAsync(string userId);
+    Task<UpdateUserResult> UpdateUserAsync(UpdateUserCommand command);
+    Task<DeleteUserResult> DeleteUserAsync(DeleteUserCommand command);
+    Task<GetUsersResult> GetUsersAsync(GetUsersQuery query);
 }
 
 public class UserService : IUserService
@@ -27,5 +30,20 @@ public class UserService : IUserService
     public async Task<UserDto?> GetUserByIdAsync(string userId)
     {
         return await _mediator.Send(new GetUserByIdQuery(userId));
+    }
+
+    public async Task<UpdateUserResult> UpdateUserAsync(UpdateUserCommand command)
+    {
+        return await _mediator.Send(command);
+    }
+
+    public async Task<DeleteUserResult> DeleteUserAsync(DeleteUserCommand command)
+    {
+        return await _mediator.Send(command);
+    }
+
+    public async Task<GetUsersResult> GetUsersAsync(GetUsersQuery query)
+    {
+        return await _mediator.Send(query);
     }
 }
